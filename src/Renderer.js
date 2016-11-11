@@ -44,7 +44,7 @@ export default class Renderer {
 		this.count = 0;
 		this.startTime = Date.now();
 		this.elapsedTime = 0;
-		this.isRunning   = true;
+		this.isRunning   = (params && params.running !== undefined) ? params.running : true;
 		this.inTranstion = false;
 		this.duration = params && params.duration || 1000;
 		this.interval = Math.max( params && params.interval || 5000, this.duration );
@@ -58,8 +58,19 @@ export default class Renderer {
 
 	transition ( to ) {
 
-		this.from.setImage( this.images[ this.count ] );
-		this.to.setImage( this.images[ to ] );
+
+		if ( this.domElement.width != this.domElement.offsetWidth || this.domElement.height != this.domElement.offsetHeight ) {
+			this.setSize(this.domElement.offsetWidth, this.domElement.offsetHeight);
+		}
+
+		//this.from.setImage( this.images[ this.count ] );
+		this.from.setImage( this.to.image );
+
+		if (to >= this.images.length ) {
+			this.to.setImage(); // Load a bland image
+		} else {
+			this.to.setImage( this.images[ to ] );
+		}
 
 		this.transitionStartTime = Date.now();
 		this.startTime = Date.now();
@@ -93,17 +104,13 @@ export default class Renderer {
 		var next = 0;
 
 		if ( this.isRunning ) {
-
 			this.elapsedTime = Date.now() - this.startTime;
-
 		}
 
-		if ( this.interval + this.duration < this.elapsedTime ) {
-
+		if ( this.interval + this.duration < this.elapsedTime && this.isRunning ) {
 			next = this.getNext();
 			this.transition( next );
 			// transition start
-
 		}
 
 		rAF( this.tick.bind( this ) );
@@ -181,7 +188,8 @@ export default class Renderer {
 
 		} else {
 
-			return;
+			image.addEventListener( 'load', onload );
+			//return;
 
 		}
 

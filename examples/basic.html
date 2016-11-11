@@ -7,22 +7,71 @@
 <body>
 <div><a href="https://github.com/yomotsu/GLSlideshow.js">GitHub repo</a></div>
 
-<div id="slideshow-placeholder"></div>
+<div id="slideshow-placeholder" style="float:left;margin:10px;border:1px solid red"></div>
+<div id="slideshow-placeholder2" style="float:left;margin:10px;border:1px solid red"></div>
+<div id="slideshow-placeholder3" style="float:left;margin:10px;border:1px solid red"></div>
+<div id="slideshow-placeholder4" style="float:left;margin:10px;border:1px solid red"></div>
 
 <script src="../build/GLSlideshow.js"></script>
 <script>
 var slideshow = GLSlideshow.autoDetectRenderer(
-	[ './img/1.jpg', './img/2.jpg', './img/3.jpg', './img/4.jpg' ],
+	[ /* './img/circle.png', './img/circle2.png' */ ],
 	{
-		width: 1024,        // optional
-		height: 576,        // optional
+		width: 200,        // optional
+		height: 300,        // optional
+		duration: 1000,     // optional
+		interval: 3000,     // optional
+		effect: 'crossZoom', // optional,
+		running: false
+	}
+);
+
+document.getElementById( 'slideshow-placeholder' ).innerHTML = "<div>"+(200/300)+"</div>";
+document.getElementById( 'slideshow-placeholder' ).appendChild( slideshow.domElement );
+
+
+var slideshow = GLSlideshow.autoDetectRenderer(
+	[  './img/circle.png', './img/circle2.png'  ],
+	{
+		width: 300,        // optional
+		height: 200,        // optional
 		duration: 1000,     // optional
 		interval: 3000,     // optional
 		effect: 'crossZoom' // optional
 	}
 );
 
-document.getElementById( 'slideshow-placeholder' ).appendChild( slideshow.domElement );
+document.getElementById( 'slideshow-placeholder2' ).innerHTML = "<div>"+(300/200)+"</div>";
+document.getElementById( 'slideshow-placeholder2' ).appendChild( slideshow.domElement );
+
+var slideshow = GLSlideshow.autoDetectRenderer(
+	[  './img/circle.png', './img/circle2.png'  ],
+	{
+		width: 200,        // optional
+		height: 400,        // optional
+		duration: 1000,     // optional
+		interval: 3000,     // optional
+		effect: 'crossZoom' // optional
+	}
+);
+
+document.getElementById( 'slideshow-placeholder3' ).innerHTML = "<div>"+(200/400)+"</div>";
+document.getElementById( 'slideshow-placeholder3' ).appendChild( slideshow.domElement );
+
+var slideshow = GLSlideshow.autoDetectRenderer(
+	[  './img/circle.png', './img/circle2.png'  ],
+	{
+		width: 400,        // optional
+		height: 200,        // optional
+		duration: 1000,     // optional
+		interval: 3000,     // optional
+		effect: 'crossZoom' // optional
+	}
+);
+
+document.getElementById( 'slideshow-placeholder4' ).innerHTML = "<div>"+(400/200)+"</div>";
+document.getElementById( 'slideshow-placeholder4' ).appendChild( slideshow.domElement );
+
 </script>
 
 </body>

@@ -2,8 +2,12 @@ import Renderer from './Renderer.js';
 import Texture  from './Texture.js';
 
 var vertexShaderSource = `
-attribute vec2 position;
-void main () { gl_Position = vec4( position, 1., 1. ); }
+	attribute vec2 position;
+
+	void main () { 
+		gl_Position =  vec4(position, 1., 1. );
+	}
+
 `;
 
 /**
@@ -25,6 +29,7 @@ export default class WebGLRenderer extends Renderer {
 
 		this.context = this.domElement.getContext( 'webgl' ) ||
 		               this.domElement.getContext( 'experimental-webgl' );
+
 		this.resolution = new Float32Array( [
 			params && params.width  || this.domElement.width,
 			params && params.height || this.domElement.height
@@ -34,6 +39,14 @@ export default class WebGLRenderer extends Renderer {
 		this.context.shaderSource( this.vertexShader, vertexShaderSource );
 		this.context.compileShader( this.vertexShader );
 		this.setEffect( params && params.effect || 'crossFade' );
+
+		this.blank = this.context.createTexture();
+		this.context.bindTexture(this.context.TEXTURE_2D, this.blank);
+		this.context.texImage2D(this.context.TEXTURE_2D, 0, this.context.RGBA, 256, 256, 0, this.context.RGBA, this.context.UNSIGNED_BYTE, null);
+		this.context.pixelStorei( this.context.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+		this.context.texParameteri(this.context.TEXTURE_2D, this.context.TEXTURE_WRAP_S, this.context.CLAMP_TO_EDGE);
+		this.context.texParameteri(this.context.TEXTURE_2D, this.context.TEXTURE_WRAP_T, this.context.CLAMP_TO_EDGE);
+		this.context.texParameteri(this.context.TEXTURE_2D, this.context.TEXTURE_MIN_FILTER, this.context.NEAREST);
 
 		this.tick();
 
@@ -84,6 +97,8 @@ export default class WebGLRenderer extends Renderer {
 		this.uniforms = {
 			progress  : this.context.getUniformLocation( this.program, 'progress' ),
 			resolution: this.context.getUniformLocation( this.program, 'resolution' ),
+			resolutionFrom: this.context.getUniformLocation( this.program, 'resolutionFrom' ),
+			resolutionTo: this.context.getUniformLocation( this.program, 'resolutionTo' ),
 			from      : this.context.getUniformLocation( this.program, 'from' ),
 			to        : this.context.getUniformLocation( this.program, 'to' )
 		};
@@ -106,6 +121,7 @@ export default class WebGLRenderer extends Renderer {
 		this.to.addEventListener  ( 'updated', this.updateTexture.bind( this ) );
 
 		this.setSize( this.resolution[ 0 ], this.resolution[ 1 ] );
+
 		this.updateTexture();
 
 	}
@@ -129,16 +145,37 @@ export default class WebGLRenderer extends Renderer {
 
 	updateTexture () {
 
+		this.context.uniform1f( this.uniforms.progress, 0 );
+
 		this.context.activeTexture( this.context.TEXTURE0 );
-		this.context.bindTexture( this.context.TEXTURE_2D, this.from.texture );
 		this.context.uniform1i( this.uniforms.from, 0 );
+		if ( this.from.valid ) {
+			this.context.bindTexture( this.context.TEXTURE_2D, this.from.texture );
+
+			if ( this.from.image.tagName !== undefined && this.from.image.tagName === "VIDEO" ) {
+				this.context.uniform2fv( this.uniforms.resolutionFrom, [this.from.image.videoWidth, this.from.image.videoHeight] ) 
+			} else {
+				this.context.uniform2fv( this.uniforms.resolutionFrom, [this.from.image.naturalWidth, this.from.image.naturalHeight] ) 
+			}
+		} else {
+			this.context.uniform2fv( this.uniforms.resolutionFrom, this.resolution) 
+			this.context.bindTexture( this.context.TEXTURE_2D, this.blank);
+		}
 
 		this.context.activeTexture( this.context.TEXTURE1 );
-		this.context.bindTexture( this.context.TEXTURE_2D, this.to.texture );
 		this.context.uniform1i( this.uniforms.to, 1 );
-
-		this.isUpdated = true;
-
+		if ( this.to.valid ) {
+			this.context.bindTexture( this.context.TEXTURE_2D, this.to.texture );
+			if ( this.to.image.tagName !== undefined &&this.to.image.tagName === "VIDEO" ) {
+				this.context.uniform2fv( this.uniforms.resolutionTo, [this.to.image.videoWidth,  this.to.image.videoHeight] );
+			} else {
+				this.context.uniform2fv( this.uniforms.resolutionTo, [this.to.image.naturalWidth, this.to.image.naturalHeight] ) 
+			}
+			this.isUpdated = true;
+		} else {
+			this.context.uniform2fv( this.uniforms.resolutionTo, this.resolution) 
+			this.context.bindTexture( this.context.TEXTURE_2D, this.blank);
+		}
 	}
 
 	setSize ( w, h ) {
@@ -161,11 +198,16 @@ export default class WebGLRenderer extends Renderer {
 		var progress = 1;
 
 		if ( this.inTranstion ) {
+			// Stop video
+			if ( this.from.image.tagName !== undefined && this.from.image.tagName === "VIDEO" ) {
+				this.from.image.pause();
+				this.from.image.currentTime = 0;
+			}
 
 			transitionElapsedTime = Date.now() - this.transitionStartTime;
 			progress = this.inTranstion ? Math.min( transitionElapsedTime / this.duration, 1 ) : 0;
 
-			// this.context.clearColor( 0, 0, 0, 1 );
+			this.context.clearColor( 0, 0, 0, 0 ); // Make background transparent
 			this.context.uniform1f( this.uniforms.progress, progress );
 			this.context.clear( this.context.COLOR_BUFFER_BIT | this.context.DEPTH_BUFFER_BIT );
 			this.context.drawArrays( this.context.TRIANGLES, 0, 6 );
@@ -173,8 +215,16 @@ export default class WebGLRenderer extends Renderer {
 
 			if ( progress === 1 ) {
 
+				// Start video
+				if ( this.to.image.tagName !== undefined && this.to.image.tagName === "VIDEO" ) {
+					this.to.image.pause();
+					this.to.image.currentTime = 0;
+					this.to.image.play();
+					this.to.needsUpdate = true;
+				}
+
 				this.inTranstion = false; // may move to tick()
-				this.isUpdated = false;
+				this.isUpdated = true;
 				this.dispatchEvent( { type: 'transitionEnd' } );
 				// transitionEnd!
 
@@ -182,13 +232,25 @@ export default class WebGLRenderer extends Renderer {
 
 		} else {
 
-			// this.context.clearColor( 0, 0, 0, 1 );
-			this.context.uniform1f( this.uniforms.progress, 0 );
+			this.context.clearColor( 0, 0, 0, 0 ); // Make background transparent
+			//this.context.uniform1f( this.uniforms.progress, 1 );
 			this.context.clear( this.context.COLOR_BUFFER_BIT | this.context.DEPTH_BUFFER_BIT );
+
+			// Load the video frames
+			if ( this.to.valid && this.to.image.tagName !== undefined && this.to.image.tagName === "VIDEO" ) {
+				this.context.texSubImage2D(
+					this.context.TEXTURE_2D, 0, 0, 0, this.context.RGBA,
+					this.context.UNSIGNED_BYTE, this.to.image
+				);
+			}
+
 			this.context.drawArrays( this.context.TRIANGLES, 0, 6 );
 			this.context.flush();
-			this.isUpdated = false;
 
+			// Only stop rendering loop if not a video
+			if ( this.to.image.tagName !== undefined && this.to.image.tagName !== "VIDEO" ) {
+				this.isUpdated = false;
+			}
 		}
 
 	}
