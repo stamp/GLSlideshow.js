@@ -41,7 +41,7 @@ export default class Renderer {
 
 	constructor ( images, params ) {
 
-		this.count = 0;
+		this.count = -1;
 		this.startTime = Date.now();
 		this.elapsedTime = 0;
 		this.isRunning   = (params && params.running !== undefined) ? params.running : true;
@@ -195,20 +195,16 @@ export default class Renderer {
 
 		this.images.splice( order, 0, image );
 
+		return image;
 	}
 
 	remove ( order ) {
-
-		if ( this.images.length === 1 ) {
-
+		if ( this.images.length === 0 ) {
 			return;
-
 		}
 
 		this.images.splice( order, 1 );
-
 	}
-
 }
 
 EventDispatcher.prototype.apply( Renderer.prototype );

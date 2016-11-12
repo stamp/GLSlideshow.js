@@ -310,7 +310,7 @@ var Renderer = function () {
 	function Renderer(images, params) {
 		_classCallCheck(this, Renderer);
 
-		this.count = 0;
+		this.count = -1;
 		this.startTime = Date.now();
 		this.elapsedTime = 0;
 		this.isRunning = params && params.running !== undefined ? params.running : true;
@@ -457,12 +457,12 @@ var Renderer = function () {
 		}
 
 		this.images.splice(order, 0, image);
+
+		return image;
 	};
 
 	Renderer.prototype.remove = function remove(order) {
-
-		if (this.images.length === 1) {
-
+		if (this.images.length === 0) {
 			return;
 		}
 
